@@ -2,6 +2,7 @@ pub(crate) mod builder;
 
 use std::fmt::{self, Write};
 
+use time::format_description::BorrowedFormatItem;
 use tracing::field::Visit;
 use tracing_core::{Event, Field, Subscriber};
 use tracing_subscriber::field::RecordFields;
@@ -68,6 +69,8 @@ fn default_enable_ansi_color() -> bool {
     std::io::stdout().is_terminal()
 }
 
+const TIMESTAMP_FORMAT: &[BorrowedFormatItem<'static>] = time::macros::format_description!("[year]-[month]-[day]T[hour]:[minute]:[second].[subsecond digits:6]Z");
+
 impl<S, N> FormatEvent<S, N> for EventsFormatter
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
@@ -91,10 +94,12 @@ where
             if self.with_timestamp {
                 serializer.serialize_key("ts")?;
                 serializer.writer.write_char('=')?;
+
+
                 time::OffsetDateTime::now_utc()
                     .format_into(
                         &mut serializer,
-                        &time::format_description::well_known::Rfc3339,
+                        &TIMESTAMP_FORMAT,
                     )
                     .map_err(|_e| fmt::Error)?;
             }
